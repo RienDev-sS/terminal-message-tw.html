@@ -372,10 +372,15 @@
 
 <body>
 	<main class="screen">
-		<p id="status" class="status">赫爾墨斯協議尚未開啟...</p>
-        <p id="status" class="status">本網站由昭昭開發...</p>
-		<div id="counter" class="counter">REMAINING ??? / ???</div>
+		<p id="status" class="status">赫爾墨斯協議尚未開啟...
 
+        </p>
+        <p class="developer-credit">
+	本網站由昭昭開發...
+</p>
+		<div id="counter" class="counter">
+	??? / ???
+</div>
 		<section class="center">
 			<div class="symbol-wrap">
 				<div class="symbol-glow"></div>
@@ -577,22 +582,20 @@
 		}
 
 		function updateCounter() {
-			const remaining =
-				commands.length - usedIndexes.length;
+	const remaining =
+		commands.length - usedIndexes.length;
 
-			counter.textContent =
-				"REMAINING " +
-				String(remaining).padStart(3, "0") +
-				" / " +
-				String(commands.length).padStart(3, "0");
+	counter.textContent = "??? / ???";
 
-			if (remaining <= 0) {
-				viewButton.disabled = true;
-				viewButton.textContent = "指令庫已耗盡";
-				statusText.textContent =
-					"赫爾墨斯協議：全部指令均已發送。";
-			}
-		}
+	if (remaining <= 0) {
+		viewButton.disabled = true;
+		viewButton.textContent =
+			"指令庫已耗盡";
+
+		statusText.textContent =
+			"赫爾墨斯協議：全部指令均已發送。";
+	}
+}
 
 		function getUnusedCommand() {
 			const available = [];
