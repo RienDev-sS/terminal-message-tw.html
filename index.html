@@ -2,72 +2,253 @@
 <html lang="zh-TW">
 <head>
 	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta
+		name="viewport"
+		content="width=device-width, initial-scale=1.0"
+	>
 
-	<title>Terminal Message</title>
+	<title>Command Terminal</title>
 
 	<style>
+		:root {
+			--background: #020304;
+			--panel: #020303;
+			--cyan: #b9f7ff;
+			--cyan-soft: rgba(170, 240, 255, 0.45);
+			--text: #c7edf2;
+			--muted: #84a9af;
+		}
+
 		* {
 			box-sizing: border-box;
 		}
 
+		html,
 		body {
 			margin: 0;
+			width: 100%;
+			min-height: 100%;
+			background: var(--background);
+		}
+
+		body {
 			min-height: 100vh;
+			padding: 4px;
+			overflow: hidden;
+			color: var(--text);
+			font-family:
+				"Microsoft JhengHei",
+				"PingFang TC",
+				Consolas,
+				monospace;
+		}
+
+		.screen {
+			position: relative;
+			width: 100%;
+			min-height: calc(100vh - 8px);
+			overflow: hidden;
+			border: 1px solid #22272a;
+			border-radius: 9px;
+			background:
+				radial-gradient(
+					circle at center,
+					rgba(33, 52, 55, 0.08),
+					transparent 33%
+				),
+				#010203;
+		}
+
+		.status {
+			position: absolute;
+			top: 16px;
+			left: 14px;
+			z-index: 5;
+			margin: 0;
+			font-size: 12px;
+			letter-spacing: 0.08em;
+			color: #bfeff4;
+			text-shadow:
+				0 0 5px rgba(183, 243, 255, 0.85),
+				0 0 12px rgba(120, 222, 240, 0.4);
+		}
+
+		.center {
+			position: absolute;
+			top: 48%;
+			left: 50%;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			transform: translate(-50%, -50%);
+		}
+
+		.symbol-wrap {
+			position: relative;
 			display: grid;
+			width: 210px;
+			height: 210px;
 			place-items: center;
-			background: #050505;
-			color: #52ff83;
-			font-family: Consolas, "Courier New", monospace;
 		}
 
-		.terminal {
-			width: min(760px, 90vw);
-			min-height: 360px;
-			padding: 24px;
-			border: 1px solid #225c34;
-			background: #090d0a;
-			box-shadow: 0 0 30px rgba(82, 255, 131, 0.12);
+		.symbol-glow {
+			position: absolute;
+			inset: 31px;
+			border-radius: 50%;
+			background: rgba(255, 245, 196, 0.16);
+			filter: blur(25px);
+			animation: glowPulse 2.6s ease-in-out infinite;
 		}
 
-		.terminal-header {
-			margin-bottom: 24px;
-			color: #a0a0a0;
+		.symbol {
+			position: relative;
+			z-index: 2;
+			display: block;
+			width: 170px;
+			height: 170px;
+			object-fit: contain;
+			user-select: none;
+			-webkit-user-drag: none;
+
+			filter:
+				drop-shadow(0 0 5px rgba(255, 255, 224, 1))
+				drop-shadow(0 0 14px rgba(255, 238, 173, 0.85))
+				drop-shadow(0 0 26px rgba(202, 240, 255, 0.6));
 		}
 
-		.output {
-			min-height: 220px;
-			white-space: pre-wrap;
+		.view-button {
+			position: relative;
+			margin-top: 28px;
+			min-width: 116px;
+			padding: 14px 25px;
+			border: 1px solid #17333a;
+			border-radius: 4px;
+			background:
+				linear-gradient(
+					180deg,
+					#10191c,
+					#050a0c
+				);
+			color: #c6edf4;
+			font: inherit;
+			font-size: 16px;
+			font-weight: 600;
+			letter-spacing: 0.03em;
+			cursor: pointer;
+			box-shadow:
+				0 0 8px rgba(175, 239, 255, 0.35),
+				0 0 25px rgba(144, 228, 247, 0.32),
+				0 0 55px rgba(111, 207, 229, 0.18);
+			transition:
+				transform 0.15s ease,
+				box-shadow 0.2s ease,
+				background 0.2s ease;
+		}
+
+		.view-button:hover {
+			background:
+				linear-gradient(
+					180deg,
+					#17262a,
+					#081113
+				);
+			box-shadow:
+				0 0 12px rgba(197, 247, 255, 0.6),
+				0 0 32px rgba(144, 228, 247, 0.46),
+				0 0 65px rgba(111, 207, 229, 0.24);
+		}
+
+		.view-button:active {
+			transform: translateY(2px);
+		}
+
+		.view-button:disabled {
+			cursor: default;
+			opacity: 0.65;
+		}
+
+		.terminal-output {
+			width: min(700px, 82vw);
+			min-height: 105px;
+			margin-top: 27px;
+			padding: 15px 18px;
+			border: 1px solid rgba(155, 233, 248, 0.24);
+			border-radius: 4px;
+			background: rgba(1, 7, 9, 0.7);
+			color: #b9f4ff;
+			font-family: Consolas, monospace;
+			font-size: 14px;
 			line-height: 1.7;
-			overflow-wrap: anywhere;
+			white-space: pre-wrap;
+			box-shadow:
+				inset 0 0 22px rgba(94, 200, 223, 0.05),
+				0 0 22px rgba(94, 200, 223, 0.08);
+			opacity: 0;
+			transform: translateY(10px);
+			pointer-events: none;
+			transition:
+				opacity 0.28s ease,
+				transform 0.28s ease;
+		}
+
+		.terminal-output.visible {
+			opacity: 1;
+			transform: translateY(0);
 		}
 
 		.cursor {
 			display: inline-block;
-			width: 9px;
-			height: 18px;
-			background: currentColor;
-			vertical-align: middle;
-			animation: blink 0.8s steps(1) infinite;
+			width: 8px;
+			height: 15px;
+			margin-left: 3px;
+			background: #d4fbff;
+			vertical-align: -2px;
+			box-shadow: 0 0 8px #9deeff;
+			animation: blink 0.75s steps(1) infinite;
 		}
 
-		button {
-			margin-top: 22px;
-			padding: 11px 20px;
-			border: 1px solid #52ff83;
-			background: transparent;
-			color: #52ff83;
-			font: inherit;
-			cursor: pointer;
+		.footer {
+			position: absolute;
+			right: 0;
+			bottom: 0;
+			left: 0;
+			z-index: 5;
 		}
 
-		button:hover {
-			background: rgba(82, 255, 131, 0.1);
+		.footer-line {
+			height: 2px;
+			background: #b9f7ff;
+			box-shadow:
+				0 0 4px #c5fbff,
+				0 0 10px rgba(122, 224, 245, 0.9),
+				0 0 20px rgba(100, 214, 236, 0.55);
 		}
 
-		button:disabled {
-			opacity: 0.45;
-			cursor: not-allowed;
+		.warning {
+			min-height: 43px;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			padding: 8px 18px;
+			border-top: 1px solid rgba(160, 231, 245, 0.1);
+			background: #020405;
+			color: #95bec5;
+			font-size: 12px;
+			text-align: center;
+			text-shadow: 0 0 7px rgba(155, 231, 244, 0.35);
+		}
+
+		.flash {
+			position: absolute;
+			inset: 0;
+			z-index: 20;
+			background: rgba(186, 244, 255, 0.15);
+			opacity: 0;
+			pointer-events: none;
+		}
+
+		.flash.active {
+			animation: screenFlash 0.24s ease-out;
 		}
 
 		@keyframes blink {
@@ -75,51 +256,198 @@
 				opacity: 0;
 			}
 		}
+
+		@keyframes glowPulse {
+			0%,
+			100% {
+				opacity: 0.7;
+				transform: scale(0.96);
+			}
+
+			50% {
+				opacity: 1;
+				transform: scale(1.05);
+			}
+		}
+
+		@keyframes screenFlash {
+			0% {
+				opacity: 0;
+			}
+
+			35% {
+				opacity: 1;
+			}
+
+			100% {
+				opacity: 0;
+			}
+		}
+
+		@media (max-width: 600px) {
+			.status {
+				font-size: 10px;
+			}
+
+			.center {
+				top: 45%;
+			}
+
+			.symbol-wrap {
+				width: 165px;
+				height: 165px;
+			}
+
+			.symbol {
+				width: 135px;
+				height: 135px;
+			}
+
+			.view-button {
+				margin-top: 18px;
+			}
+
+			.terminal-output {
+				width: 90vw;
+				font-size: 12px;
+			}
+
+			.warning {
+				font-size: 10px;
+			}
+		}
 	</style>
 </head>
 
 <body>
-	<main class="terminal">
-		<div class="terminal-header">
-			TERMINAL NODE 01 — READY
-		</div>
+	<main class="screen">
+		<p class="status">協議尚未開啟...</p>
 
-		<div>
-			<span id="output" class="output">等待指令...</span>
-			<span class="cursor"></span>
-		</div>
+		<section class="center">
+			<div class="symbol-wrap">
+				<div class="symbol-glow"></div>
 
-		<button id="sendButton" type="button">
-			傳送隨機指令
-		</button>
+				<img
+					class="symbol"
+					src="./assets/symbol.png"
+					alt="發光指令標誌"
+				>
+			</div>
+
+			<button
+				id="viewButton"
+				class="view-button"
+				type="button"
+			>
+				點擊查看
+			</button>
+
+			<div
+				id="terminalOutput"
+				class="terminal-output"
+				aria-live="polite"
+			></div>
+		</section>
+
+		<footer class="footer">
+			<div class="footer-line"></div>
+
+			<div class="warning">
+				警告：此頁面顯示的內容僅為虛構終端機效果，不會執行任何系統指令。
+			</div>
+		</footer>
+
+		<div id="flash" class="flash"></div>
 	</main>
 
 	<script>
 		const commands = [
-			"> CONNECTING TO REMOTE CHANNEL...\n> CONNECTION ESTABLISHED.",
-			"> VERIFYING ACCESS TOKEN...\n> ACCESS GRANTED.",
-			"> SCANNING AVAILABLE SIGNALS...\n> SIGNAL FOUND.",
-			"> INITIALIZING TRANSMISSION...\n> MESSAGE DELIVERED.",
-			"> SYNCHRONIZING TERMINAL NODE...\n> SYNCHRONIZATION COMPLETE."
+			[
+				"[SYSTEM] 正在建立加密通道...",
+				"[SYSTEM] 身分驗證完成。",
+				"[MESSAGE] 指令已成功傳送。"
+			],
+			[
+				"[NODE] 正在搜尋可用終端節點...",
+				"[NODE] 偵測到遠端訊號。",
+				"[NODE] 連線狀態：穩定。"
+			],
+			[
+				"[PROTOCOL] 正在初始化傳輸協議...",
+				"[PROTOCOL] 金鑰交換完成。",
+				"[PROTOCOL] 等待下一項指示。"
+			],
+			[
+				"[TERMINAL] 正在讀取資料封包...",
+				"[TERMINAL] 完整性檢查通過。",
+				"[TERMINAL] 傳輸作業已結束。"
+			],
+			[
+				"[CHANNEL] 正在同步遠端頻率...",
+				"[CHANNEL] 頻率鎖定完成。",
+				"[CHANNEL] 訊息已送達。"
+			]
 		];
 
-		const output = document.getElementById("output");
-		const sendButton = document.getElementById("sendButton");
+		const viewButton =
+			document.getElementById("viewButton");
 
-		let audioContext;
+		const terminalOutput =
+			document.getElementById("terminalOutput");
 
-		function playTerminalSound() {
+		const flash =
+			document.getElementById("flash");
+
+		let audioContext = null;
+		let lastCommandIndex = -1;
+		let isTyping = false;
+
+		function wait(milliseconds) {
+			return new Promise(function (resolve) {
+				setTimeout(resolve, milliseconds);
+			});
+		}
+
+		function getRandomCommand() {
+			let index;
+
+			do {
+				index = Math.floor(
+					Math.random() * commands.length
+				);
+			} while (
+				commands.length > 1 &&
+				index === lastCommandIndex
+			);
+
+			lastCommandIndex = index;
+
+			return commands[index].join("\n");
+		}
+
+		function ensureAudioContext() {
 			audioContext ??= new AudioContext();
 
-			const oscillator = audioContext.createOscillator();
-			const gain = audioContext.createGain();
+			if (audioContext.state === "suspended") {
+				audioContext.resume();
+			}
+		}
+
+		function playTypingSound() {
+			ensureAudioContext();
+
+			const oscillator =
+				audioContext.createOscillator();
+
+			const gain =
+				audioContext.createGain();
 
 			oscillator.type = "square";
 			oscillator.frequency.value =
-				180 + Math.random() * 120;
+				155 + Math.random() * 90;
 
 			gain.gain.setValueAtTime(
-				0.025,
+				0.018,
 				audioContext.currentTime
 			);
 
@@ -133,41 +461,111 @@
 
 			oscillator.start();
 			oscillator.stop(
-				audioContext.currentTime + 0.03
+				audioContext.currentTime + 0.028
 			);
 		}
 
-		function getRandomCommand() {
-			const index =
-				Math.floor(Math.random() * commands.length);
+		function playConfirmSound() {
+			ensureAudioContext();
 
-			return commands[index];
+			const frequencies = [390, 520, 680];
+
+			frequencies.forEach(function (
+				frequency,
+				index
+			) {
+				const oscillator =
+					audioContext.createOscillator();
+
+				const gain =
+					audioContext.createGain();
+
+				const startTime =
+					audioContext.currentTime +
+					index * 0.075;
+
+				oscillator.type = "sine";
+				oscillator.frequency.value =
+					frequency;
+
+				gain.gain.setValueAtTime(
+					0.045,
+					startTime
+				);
+
+				gain.gain.exponentialRampToValueAtTime(
+					0.001,
+					startTime + 0.16
+				);
+
+				oscillator.connect(gain);
+				gain.connect(
+					audioContext.destination
+				);
+
+				oscillator.start(startTime);
+				oscillator.stop(startTime + 0.17);
+			});
 		}
 
-		async function typeCommand(text) {
-			output.textContent = "";
+		async function typeText(text) {
+			terminalOutput.textContent = "";
 
 			for (const character of text) {
-				output.textContent += character;
+				terminalOutput.textContent += character;
 
-				if (character !== " " && character !== "\n") {
-					playTerminalSound();
+				if (
+					character !== " " &&
+					character !== "\n"
+				) {
+					playTypingSound();
 				}
 
-				await new Promise(function (resolve) {
-					setTimeout(resolve, 28);
-				});
+				if (character === "\n") {
+					await wait(270);
+				} else {
+					await wait(
+						22 + Math.random() * 22
+					);
+				}
 			}
+
+			const cursor =
+				document.createElement("span");
+
+			cursor.className = "cursor";
+			terminalOutput.appendChild(cursor);
 		}
 
-		sendButton.addEventListener("click", async function () {
-			sendButton.disabled = true;
+		viewButton.addEventListener(
+			"click",
+			async function () {
+				if (isTyping) return;
 
-			const command = getRandomCommand();
-			await typeCommand(command);
+				isTyping = true;
+				viewButton.disabled = true;
+				viewButton.textContent = "傳送中...";
 
-			sendButton.disabled = false;
-		});
+				flash.classList.remove("active");
+				void flash.offsetWidth;
+				flash.classList.add("active");
+
+				terminalOutput.classList.add(
+					"visible"
+				);
+
+				const command = getRandomCommand();
+
+				await typeText(command);
+				playConfirmSound();
+
+				viewButton.textContent =
+					"再次查看";
+
+				viewButton.disabled = false;
+				isTyping = false;
+			}
+		);
 	</script>
 </body>
 </html>
