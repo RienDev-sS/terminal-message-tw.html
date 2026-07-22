@@ -1,1 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+	<title>Terminal Message</title>
+
+	<style>
+		* {
+			box-sizing: border-box;
+		}
+
+		body {
+			margin: 0;
+			min-height: 100vh;
+			display: grid;
+			place-items: center;
+			background: #050505;
+			color: #52ff83;
+			font-family: Consolas, "Courier New", monospace;
+		}
+
+		.terminal {
+			width: min(760px, 90vw);
+			min-height: 360px;
+			padding: 24px;
+			border: 1px solid #225c34;
+			background: #090d0a;
+			box-shadow: 0 0 30px rgba(82, 255, 131, 0.12);
+		}
+
+		.terminal-header {
+			margin-bottom: 24px;
+			color: #a0a0a0;
+		}
+
+		.output {
+			min-height: 220px;
+			white-space: pre-wrap;
+			line-height: 1.7;
+			overflow-wrap: anywhere;
+		}
+
+		.cursor {
+			display: inline-block;
+			width: 9px;
+			height: 18px;
+			background: currentColor;
+			vertical-align: middle;
+			animation: blink 0.8s steps(1) infinite;
+		}
+
+		button {
+			margin-top: 22px;
+			padding: 11px 20px;
+			border: 1px solid #52ff83;
+			background: transparent;
+			color: #52ff83;
+			font: inherit;
+			cursor: pointer;
+		}
+
+		button:hover {
+			background: rgba(82, 255, 131, 0.1);
+		}
+
+		button:disabled {
+			opacity: 0.45;
+			cursor: not-allowed;
+		}
+
+		@keyframes blink {
+			50% {
+				opacity: 0;
+			}
+		}
+	</style>
+</head>
+
+<body>
+	<main class="terminal">
+		<div class="terminal-header">
+			TERMINAL NODE 01 — READY
+		</div>
+
+		<div>
+			<span id="output" class="output">等待指令...</span>
+			<span class="cursor"></span>
+		</div>
+
+		<button id="sendButton" type="button">
+			傳送隨機指令
+		</button>
+	</main>
+
+	<script>
+		const commands = [
+			"> CONNECTING TO REMOTE CHANNEL...\n> CONNECTION ESTABLISHED.",
+			"> VERIFYING ACCESS TOKEN...\n> ACCESS GRANTED.",
+			"> SCANNING AVAILABLE SIGNALS...\n> SIGNAL FOUND.",
+			"> INITIALIZING TRANSMISSION...\n> MESSAGE DELIVERED.",
+			"> SYNCHRONIZING TERMINAL NODE...\n> SYNCHRONIZATION COMPLETE."
+		];
+
+		const output = document.getElementById("output");
+		const sendButton = document.getElementById("sendButton");
+
+		let audioContext;
+
+		function playTerminalSound() {
+			audioContext ??= new AudioContext();
+
+			const oscillator = audioContext.createOscillator();
+			const gain = audioContext.createGain();
+
+			oscillator.type = "square";
+			oscillator.frequency.value =
+				180 + Math.random() * 120;
+
+			gain.gain.setValueAtTime(
+				0.025,
+				audioContext.currentTime
+			);
+
+			gain.gain.exponentialRampToValueAtTime(
+				0.001,
+				audioContext.currentTime + 0.025
+			);
+
+			oscillator.connect(gain);
+			gain.connect(audioContext.destination);
+
+			oscillator.start();
+			oscillator.stop(
+				audioContext.currentTime + 0.03
+			);
+		}
+
+		function getRandomCommand() {
+			const index =
+				Math.floor(Math.random() * commands.length);
+
+			return commands[index];
+		}
+
+		async function typeCommand(text) {
+			output.textContent = "";
+
+			for (const character of text) {
+				output.textContent += character;
+
+				if (character !== " " && character !== "\n") {
+					playTerminalSound();
+				}
+
+				await new Promise(function (resolve) {
+					setTimeout(resolve, 28);
+				});
+			}
+		}
+
+		sendButton.addEventListener("click", async function () {
+			sendButton.disabled = true;
+
+			const command = getRandomCommand();
+			await typeCommand(command);
+
+			sendButton.disabled = false;
+		});
+	</script>
+</body>
+</html>
