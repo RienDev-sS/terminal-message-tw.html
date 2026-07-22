@@ -2,7 +2,7 @@
 <html lang="zh-TW">
 <head>
 	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 	<title>HERMES PROTOCOL</title>
 
 	<style>
@@ -30,7 +30,12 @@
 
 		body {
 			min-height: 100vh;
-			padding: 4px;
+			min-height: 100dvh;
+			padding:
+				max(4px, env(safe-area-inset-top))
+				max(4px, env(safe-area-inset-right))
+				max(4px, env(safe-area-inset-bottom))
+				max(4px, env(safe-area-inset-left));
 			overflow: hidden;
 			color: var(--text);
 			font-family: "Microsoft JhengHei", "PingFang TC", Consolas, monospace;
@@ -40,6 +45,7 @@
 			position: relative;
 			width: 100%;
 			min-height: calc(100vh - 8px);
+			min-height: calc(100dvh - 8px);
 			overflow: hidden;
 			border: 1px solid #22282b;
 			border-radius: 9px;
@@ -354,7 +360,28 @@
 			}
 		}
 
-		@media (max-width: 600px) {
+		@media (max-width: 700px), (max-height: 700px) {
+			html,
+			body {
+				min-height: 100%;
+			}
+
+			body {
+				min-height: 100svh;
+				min-height: 100dvh;
+				overflow-x: hidden;
+				overflow-y: auto;
+				-webkit-overflow-scrolling: touch;
+			}
+
+			.screen {
+				display: flex;
+				min-height: calc(100svh - 8px);
+				min-height: calc(100dvh - 8px);
+				flex-direction: column;
+				overflow: hidden;
+			}
+
 			.status,
 			.counter,
 			.developer-credit,
@@ -362,36 +389,167 @@
 				font-size: 9px;
 			}
 
+			.status {
+				top: 14px;
+				left: 12px;
+				max-width: calc(100% - 120px);
+			}
+
+			.developer-credit {
+				top: 35px;
+				left: 12px;
+			}
+
+			.visit-count {
+				top: 53px;
+				left: 12px;
+			}
+
+			.counter {
+				top: 14px;
+				right: 12px;
+			}
+
 			.center {
-				top: 42%;
+				position: relative;
+				top: auto;
+				left: auto;
+				width: 100%;
+				min-height: 0;
+				margin: 0;
+				padding:
+					84px
+					12px
+					28px;
+				flex: 1 0 auto;
+				transform: none;
 			}
 
 			.symbol-wrap {
-				width: 150px;
-				height: 150px;
+				width: clamp(118px, 34vw, 150px);
+				height: clamp(118px, 34vw, 150px);
 			}
 
 			.symbol {
-				width: 122px;
-				height: 122px;
+				width: clamp(96px, 28vw, 122px);
+				height: clamp(96px, 28vw, 122px);
 			}
 
 			.symbol-fallback {
-				font-size: 70px;
+				font-size: clamp(58px, 17vw, 70px);
+			}
+
+			.view-button {
+				margin-top: 12px;
+				min-width: 120px;
+				padding: 12px 20px;
+				font-size: 14px;
 			}
 
 			.terminal-output {
-				width: 91vw;
-				min-height: 150px;
+				width: min(92vw, 680px);
+				min-height: 132px;
+				max-height: 34dvh;
+				margin-top: 18px;
+				padding: 13px 14px;
+				overflow-y: auto;
 				font-size: 12px;
+				line-height: 1.65;
+				-webkit-overflow-scrolling: touch;
+			}
+
+			.footer {
+				position: relative;
+				right: auto;
+				bottom: auto;
+				left: auto;
+				width: 100%;
+				margin-top: auto;
+				flex: 0 0 auto;
 			}
 
 			.warning-main {
+				min-height: 34px;
+				padding: 7px 12px 3px;
 				font-size: 10px;
+				line-height: 1.45;
 			}
 
 			.disclaimer {
+				padding:
+					1px
+					12px
+					max(8px, env(safe-area-inset-bottom));
 				font-size: 8px;
+				line-height: 1.4;
+			}
+		}
+
+		@media (max-width: 390px) {
+			.status {
+				max-width: 220px;
+				font-size: 8px;
+			}
+
+			.counter {
+				font-size: 8px;
+			}
+
+			.center {
+				padding-top: 80px;
+				padding-bottom: 20px;
+			}
+
+			.terminal-output {
+				max-height: 30dvh;
+			}
+		}
+
+		@media (orientation: landscape) and (max-height: 520px) {
+			.screen {
+				min-height: 100dvh;
+			}
+
+			.center {
+				padding-top: 64px;
+				padding-bottom: 14px;
+			}
+
+			.symbol-wrap {
+				width: 92px;
+				height: 92px;
+			}
+
+			.symbol {
+				width: 76px;
+				height: 76px;
+			}
+
+			.symbol-fallback {
+				font-size: 48px;
+			}
+
+			.view-button {
+				margin-top: 6px;
+				padding: 9px 16px;
+			}
+
+			.terminal-output {
+				min-height: 88px;
+				max-height: 28dvh;
+				margin-top: 10px;
+				font-size: 11px;
+			}
+
+			.warning-main {
+				min-height: 28px;
+				padding-top: 4px;
+				font-size: 9px;
+			}
+
+			.disclaimer {
+				padding-bottom: 4px;
+				font-size: 7px;
 			}
 		}
 	</style>
@@ -436,7 +594,6 @@
 				警告：如未能完成指令，將在 24 小時內派出代行者進行絞殺。
 			</div>
 
-			
 		</footer>
 
 		<div id="flash" class="flash"></div>
