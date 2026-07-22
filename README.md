@@ -3,7 +3,7 @@
 由昭昭製作的非官方同人互動網頁。
 
 本專案以《Limbus Company》的世界觀與介面氛圍為靈感，
-並參考其他終端機風格網頁的版面呈現方式。
+並參考其他終端機風格網頁的版面與輸出呈現方式。
 參考網頁 :https://xiaomu1999f-cpu.github.io/xiaomu/zl.html
 
 本專案與 Project Moon 無官方關係，也不代表 Project Moon。
