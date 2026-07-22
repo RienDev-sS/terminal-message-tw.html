@@ -84,6 +84,31 @@
 			color: var(--muted);
 		}
 
+		.developer-credit,
+		.visit-count {
+			position: absolute;
+			left: 14px;
+			z-index: 5;
+			margin: 0;
+			font-size: 10px;
+			letter-spacing: 0.1em;
+		}
+
+		.developer-credit {
+			top: 37px;
+			color: #7fa5ac;
+			text-shadow:
+				0 0 6px rgba(128, 220, 237, 0.24);
+		}
+
+		.visit-count {
+			top: 57px;
+			color: #58777d;
+			font-size: 9px;
+			text-shadow:
+				0 0 5px rgba(128, 220, 237, 0.18);
+		}
+
 		.center {
 			position: absolute;
 			top: 45%;
@@ -331,7 +356,9 @@
 
 		@media (max-width: 600px) {
 			.status,
-			.counter {
+			.counter,
+			.developer-credit,
+			.visit-count {
 				font-size: 9px;
 			}
 
@@ -372,15 +399,11 @@
 
 <body>
 	<main class="screen">
-		<p id="status" class="status">赫爾墨斯協議尚未開啟...
+		<p id="status" class="status">赫爾墨斯協議尚未開啟...</p>
+		<p class="developer-credit">本網站由昭昭開發...</p>
+		<p id="visitCount" class="visit-count">VISITOR RECORD 0000</p>
+		<div id="counter" class="counter">??? / ???</div>
 
-        </p>
-        <p class="developer-credit">
-	本網站由昭昭開發...
-</p>
-		<div id="counter" class="counter">
-	??? / ???
-</div>
 		<section class="center">
 			<div class="symbol-wrap">
 				<div class="symbol-glow"></div>
@@ -410,9 +433,10 @@
 			<div class="footer-line"></div>
 
 			<div class="warning-main">
-				警告：如未能完成指令，將在 24 小時內派出代行者前往目標所在地{進行絞殺}。
+				警告：如未能完成指令，將在 24 小時內派出代行者進行絞殺。
 			</div>
 
+			
 		</footer>
 
 		<div id="flash" class="flash"></div>
@@ -533,11 +557,13 @@
 		const terminalOutput = document.getElementById("terminalOutput");
 		const flash = document.getElementById("flash");
 		const statusText = document.getElementById("status");
+		const visitCountText = document.getElementById("visitCount");
 		const counter = document.getElementById("counter");
 		const symbolImage = document.getElementById("symbolImage");
 		const symbolFallback = document.getElementById("symbolFallback");
 
 		const storageKey = "hermes-terminal-used-v1";
+		const visitStorageKey = "hermes-local-visit-count-v1";
 
 		let audioContext = null;
 		let terminalNoiseBuffer = null;
@@ -548,6 +574,46 @@
 			return new Promise(function (resolve) {
 				setTimeout(resolve, milliseconds);
 			});
+		}
+
+		function updateVisitCount() {
+			let visitCount = 0;
+
+			try {
+				visitCount = Number(
+					localStorage.getItem(
+						visitStorageKey
+					)
+				);
+
+				if (
+					!Number.isFinite(visitCount) ||
+					visitCount < 0
+				) {
+					visitCount = 0;
+				}
+
+				visitCount += 1;
+
+				localStorage.setItem(
+					visitStorageKey,
+					String(visitCount)
+				);
+			} catch (error) {
+				console.warn(
+					"無法讀取訪問紀錄：",
+					error
+				);
+
+				visitCount = 1;
+			}
+
+			visitCountText.textContent =
+				"VISITOR RECORD " +
+				String(visitCount).padStart(
+					4,
+					"0"
+				);
 		}
 
 		function loadUsedIndexes() {
@@ -582,20 +648,18 @@
 		}
 
 		function updateCounter() {
-	const remaining =
-		commands.length - usedIndexes.length;
+			const remaining =
+				commands.length - usedIndexes.length;
 
-	counter.textContent = "??? / ???";
+			counter.textContent = "??? / ???";
 
-	if (remaining <= 0) {
-		viewButton.disabled = true;
-		viewButton.textContent =
-			"指令庫已耗盡";
-
-		statusText.textContent =
-			"赫爾墨斯協議：全部指令均已發送。";
-	}
-}
+			if (remaining <= 0) {
+				viewButton.disabled = true;
+				viewButton.textContent = "指令庫已耗盡";
+				statusText.textContent =
+					"赫爾墨斯協議：全部指令均已發送。";
+			}
+		}
 
 		function getUnusedCommand() {
 			const available = [];
@@ -1054,6 +1118,7 @@
 			symbolFallback.style.display = "block";
 		});
 
+		updateVisitCount();
 		updateCounter();
 	</script>
 </body>
