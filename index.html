@@ -1,317 +1,1057 @@
-<script>
-	const commands = [
-		"在二十四小時內看完一部最喜歡的動漫，並記錄最喜歡的三個片段。",
-		"在今晚十二點以前，關閉所有通知十分鐘，直到倒數完全結束。",
-		"選擇一首最熟悉的歌曲，戴上耳機並閉眼完整聽完一次。",
-		"在明天日落以前，拍下一張畫面中沒有任何人的街景。",
-		"從房間裡找出一件超過一年沒有碰過的物品，寫下它原本的用途。",
-		"在凌晨一點以前，關閉房間主燈並安靜坐著三分鐘，只聆聽周圍的聲音。",
-		"在二十四小時內完成一件從來沒有嘗試過的小型作品。",
-		"寫下一句從未告訴過任何人的話，將它儲存在只有自己知道的位置。",
-		"在明天以前，重新觀看一段對自己影響最深的影片，並寫下觀看後的想法。",
-		"選擇一個熟悉的房間，在不開主燈的情況下觀察一分鐘，記住其中五個物件。",
-		"在二十四小時內整理一個長時間沒有打開的資料夾，刪除至少十個不需要的檔案。",
-		"在今天結束以前，完成一件拖延超過七天但能在三十分鐘內完成的事情。"
-	];
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>HERMES PROTOCOL</title>
 
-	const scrambleSymbols = Array.from(
-		"▓▒░01<>[]{}#$%&*+=?/\\ΔΩ※ЖЯ"
-	);
-
-	const viewButton =
-		document.getElementById("viewButton");
-
-	const terminalOutput =
-		document.getElementById("terminalOutput");
-
-	const flash =
-		document.getElementById("flash");
-
-	let audioContext = null;
-	let lastCommandIndex = -1;
-	let isDecoding = false;
-
-	function wait(milliseconds) {
-		return new Promise(function (resolve) {
-			setTimeout(resolve, milliseconds);
-		});
-	}
-
-	function ensureAudioContext() {
-		audioContext ??= new AudioContext();
-
-		if (audioContext.state === "suspended") {
-			audioContext.resume();
+	<style>
+		:root {
+			--bg: #010203;
+			--panel: #020506;
+			--cyan: #c7f7ff;
+			--cyan-soft: rgba(157, 231, 246, 0.42);
+			--text: #c4eaf0;
+			--muted: #73979e;
+			--danger: #d9a6a6;
 		}
-	}
 
-	function playTone(
-		frequency,
-		duration,
-		delay = 0,
-		type = "sine",
-		volume = 0.04
-	) {
-		ensureAudioContext();
+		* {
+			box-sizing: border-box;
+		}
 
-		const startTime =
-			audioContext.currentTime + delay;
+		html,
+		body {
+			margin: 0;
+			width: 100%;
+			min-height: 100%;
+			background: var(--bg);
+		}
 
-		const oscillator =
-			audioContext.createOscillator();
+		body {
+			min-height: 100vh;
+			padding: 4px;
+			overflow: hidden;
+			color: var(--text);
+			font-family: "Microsoft JhengHei", "PingFang TC", Consolas, monospace;
+		}
 
-		const gain =
-			audioContext.createGain();
+		.screen {
+			position: relative;
+			width: 100%;
+			min-height: calc(100vh - 8px);
+			overflow: hidden;
+			border: 1px solid #22282b;
+			border-radius: 9px;
+			background:
+				radial-gradient(circle at center, rgba(41, 66, 71, 0.1), transparent 35%),
+				#010203;
+		}
 
-		oscillator.type = type;
-		oscillator.frequency.setValueAtTime(
+		.screen::before {
+			content: "";
+			position: absolute;
+			inset: 0;
+			pointer-events: none;
+			background: repeating-linear-gradient(
+				to bottom,
+				transparent 0,
+				transparent 3px,
+				rgba(177, 239, 250, 0.018) 4px
+			);
+		}
+
+		.status,
+		.counter {
+			position: absolute;
+			top: 16px;
+			z-index: 5;
+			margin: 0;
+			font-size: 11px;
+			letter-spacing: 0.09em;
+		}
+
+		.status {
+			left: 14px;
+			color: #bfeff4;
+			text-shadow:
+				0 0 5px rgba(183, 243, 255, 0.85),
+				0 0 12px rgba(120, 222, 240, 0.4);
+		}
+
+		.counter {
+			right: 14px;
+			color: var(--muted);
+		}
+
+		.center {
+			position: absolute;
+			top: 45%;
+			left: 50%;
+			display: flex;
+			width: min(760px, 92vw);
+			flex-direction: column;
+			align-items: center;
+			transform: translate(-50%, -50%);
+		}
+
+		.symbol-wrap {
+			position: relative;
+			display: grid;
+			width: 190px;
+			height: 190px;
+			place-items: center;
+		}
+
+		.symbol-glow {
+			position: absolute;
+			inset: 27px;
+			border-radius: 50%;
+			background: rgba(255, 245, 196, 0.17);
+			filter: blur(24px);
+			animation: glowPulse 2.6s ease-in-out infinite;
+		}
+
+		.symbol {
+			position: relative;
+			z-index: 2;
+			display: block;
+			width: 155px;
+			height: 155px;
+			object-fit: contain;
+			user-select: none;
+			-webkit-user-drag: none;
+			filter:
+				drop-shadow(0 0 5px rgba(255, 255, 224, 1))
+				drop-shadow(0 0 14px rgba(255, 238, 173, 0.85))
+				drop-shadow(0 0 26px rgba(202, 240, 255, 0.6));
+		}
+
+		.symbol-fallback {
+			position: relative;
+			z-index: 2;
+			display: none;
+			font-size: 92px;
+			color: #fff1b5;
+			text-shadow:
+				0 0 8px #fff8d9,
+				0 0 22px #ffe9a1,
+				0 0 45px #9be8ff;
+		}
+
+		.view-button {
+			margin-top: 20px;
+			min-width: 132px;
+			padding: 14px 25px;
+			border: 1px solid #17333a;
+			border-radius: 4px;
+			background: linear-gradient(180deg, #10191c, #050a0c);
+			color: #c6edf4;
+			font: inherit;
+			font-size: 16px;
+			font-weight: 600;
+			cursor: pointer;
+			box-shadow:
+				0 0 8px rgba(175, 239, 255, 0.35),
+				0 0 25px rgba(144, 228, 247, 0.32),
+				0 0 55px rgba(111, 207, 229, 0.18);
+			transition:
+				transform 0.15s ease,
+				box-shadow 0.2s ease,
+				background 0.2s ease;
+		}
+
+		.view-button:hover {
+			background: linear-gradient(180deg, #17262a, #081113);
+			box-shadow:
+				0 0 12px rgba(197, 247, 255, 0.6),
+				0 0 32px rgba(144, 228, 247, 0.46),
+				0 0 65px rgba(111, 207, 229, 0.24);
+		}
+
+		.view-button:active {
+			transform: translateY(2px);
+		}
+
+		.view-button:disabled {
+			cursor: default;
+			opacity: 0.55;
+		}
+
+		.terminal-output {
+			width: min(700px, 88vw);
+			min-height: 138px;
+			margin-top: 22px;
+			padding: 16px 18px;
+			border: 1px solid rgba(155, 233, 248, 0.24);
+			border-radius: 4px;
+			background: rgba(1, 7, 9, 0.76);
+			color: #b9f4ff;
+			font-size: 14px;
+			line-height: 1.75;
+			white-space: pre-wrap;
+			box-shadow:
+				inset 0 0 22px rgba(94, 200, 223, 0.05),
+				0 0 22px rgba(94, 200, 223, 0.08);
+			opacity: 0;
+			transform: translateY(10px);
+			pointer-events: none;
+			transition:
+				opacity 0.28s ease,
+				transform 0.28s ease;
+		}
+
+		.terminal-output.visible {
+			opacity: 1;
+			transform: translateY(0);
+		}
+
+		.terminal-output.decoding {
+			animation: decodeFlicker 0.11s steps(2) infinite;
+		}
+
+		.cursor {
+			display: inline-block;
+			width: 8px;
+			height: 15px;
+			margin-left: 3px;
+			background: #d4fbff;
+			vertical-align: -2px;
+			box-shadow: 0 0 8px #9deeff;
+			animation: blink 0.75s steps(1) infinite;
+		}
+
+		.footer {
+			position: absolute;
+			right: 0;
+			bottom: 0;
+			left: 0;
+			z-index: 5;
+		}
+
+		.footer-line {
+			height: 2px;
+			background: #b9f7ff;
+			box-shadow:
+				0 0 4px #c5fbff,
+				0 0 10px rgba(122, 224, 245, 0.9),
+				0 0 20px rgba(100, 214, 236, 0.55);
+		}
+
+		.warning-main {
+			display: flex;
+			min-height: 35px;
+			align-items: center;
+			justify-content: center;
+			padding: 7px 18px 2px;
+			background: #020405;
+			color: var(--danger);
+			font-size: 12px;
+			font-weight: 600;
+			text-align: center;
+			text-shadow: 0 0 8px rgba(226, 155, 155, 0.35);
+		}
+
+		.disclaimer {
+			padding: 0 18px 7px;
+			background: #020405;
+			color: #607a80;
+			font-size: 9px;
+			text-align: center;
+		}
+
+		.flash {
+			position: absolute;
+			inset: 0;
+			z-index: 20;
+			background: rgba(186, 244, 255, 0.15);
+			opacity: 0;
+			pointer-events: none;
+		}
+
+		.flash.active {
+			animation: screenFlash 0.24s ease-out;
+		}
+
+		@keyframes blink {
+			50% {
+				opacity: 0;
+			}
+		}
+
+		@keyframes glowPulse {
+			0%,
+			100% {
+				opacity: 0.7;
+				transform: scale(0.96);
+			}
+
+			50% {
+				opacity: 1;
+				transform: scale(1.05);
+			}
+		}
+
+		@keyframes decodeFlicker {
+			0% {
+				opacity: 0.78;
+				text-shadow:
+					2px 0 rgba(133, 238, 255, 0.5),
+					-2px 0 rgba(255, 255, 255, 0.15);
+			}
+
+			50% {
+				opacity: 1;
+				text-shadow:
+					-1px 0 rgba(133, 238, 255, 0.75),
+					1px 0 rgba(255, 255, 255, 0.25);
+			}
+
+			100% {
+				opacity: 0.88;
+				text-shadow:
+					1px 0 rgba(133, 238, 255, 0.5),
+					-1px 0 rgba(255, 255, 255, 0.18);
+			}
+		}
+
+		@keyframes screenFlash {
+			0% {
+				opacity: 0;
+			}
+
+			35% {
+				opacity: 1;
+			}
+
+			100% {
+				opacity: 0;
+			}
+		}
+
+		@media (max-width: 600px) {
+			.status,
+			.counter {
+				font-size: 9px;
+			}
+
+			.center {
+				top: 42%;
+			}
+
+			.symbol-wrap {
+				width: 150px;
+				height: 150px;
+			}
+
+			.symbol {
+				width: 122px;
+				height: 122px;
+			}
+
+			.symbol-fallback {
+				font-size: 70px;
+			}
+
+			.terminal-output {
+				width: 91vw;
+				min-height: 150px;
+				font-size: 12px;
+			}
+
+			.warning-main {
+				font-size: 10px;
+			}
+
+			.disclaimer {
+				font-size: 8px;
+			}
+		}
+	</style>
+</head>
+
+<body>
+	<main class="screen">
+		<p id="status" class="status">赫爾墨斯協議尚未開啟...</p>
+        <p id="status" class="status">網站由昭昭製作...</p>
+		<div id="counter" class="counter">REMAINING ??? / ???</div>
+
+		<section class="center">
+			<div class="symbol-wrap">
+				<div class="symbol-glow"></div>
+
+				<img
+					id="symbolImage"
+					class="symbol"
+					src="./assets/symbol.png"
+					alt="赫爾墨斯協議標誌"
+				>
+
+				<div id="symbolFallback" class="symbol-fallback">⌬</div>
+			</div>
+
+			<button id="viewButton" class="view-button" type="button">
+				點擊查看
+			</button>
+
+			<div
+				id="terminalOutput"
+				class="terminal-output"
+				aria-live="polite"
+			></div>
+		</section>
+
+		<footer class="footer">
+			<div class="footer-line"></div>
+
+			<div class="warning-main">
+				警告：如未能完成指令，將在 24 小時內派出代行者前往目標所在地{進行絞殺}。
+			</div>
+
+		</footer>
+
+		<div id="flash" class="flash"></div>
+	</main>
+
+	<script>
+		const commands = [
+   "致:在二十四小時內重看最喜歡的動漫其中三集，並記錄最想重播的三個片段。",
+   "致:在今天結束以前，替一部最喜歡的作品寫下不超過一百字的推薦理由。",
+   "致:挑選一名最喜歡的角色，列出三個你認為他從未說出口的想法。",
+   "致:播放一首最熟悉的配樂，閉眼聽完整首，並記下最先浮現的畫面。",
+   "致:在二十四小時內完成一張只使用黑、白與一種強調色的插圖。",
+   "致:從最近看過的作品中挑選一個場景，用自己的方式重新描述一次。",
+   "致:選一段最熟悉的台詞，將它改寫成完全相反的意思。",
+   "致:在今天結束以前，替一部不存在的動漫寫出片名與一句宣傳標語。",
+   "致:挑選五個隨機詞語，將它們組成一段不超過兩百字的短篇故事。",
+   "致:找出一首三年以上沒有播放過的歌曲，完整聽完一次。",
+   "致:在二十四小時內重新觀看一部曾經改變你想法的影片，並寫下新的感受。",
+   "致:用三句話描述一個沒有姓名、沒有背景，卻令人難忘的角色。",
+   "致:為你最喜歡的作品設計一個從未出現過的支線任務。",
+   "致:將今天發生的一件小事改寫成懸疑故事的開頭。",
+   "致:在一張紙上畫出一個只由圓形與直線構成的未知徽記。",
+   "致:替一個普通物品設定特殊能力，並寫下它唯一的副作用。",
+   "致:在二十四小時內完成一個三十秒以內的簡短音效片段或聲音設計。",
+   "致:選一張舊照片，替照片中的場景寫下一句虛構旁白。",
+   "致:替明天的自己留下一段不超過五十字的訊息。",
+   "致:將一個熟悉的故事改寫成只有三個場景的版本。",
+   "致:在今晚十二點以前，關閉所有通知十分鐘，直到倒數完全結束。",
+   "致:在熟悉的房間裡關閉主燈三分鐘，只保留安全照明，記錄最先注意到的五種聲音。",
+   "致:站在窗邊觀察五分鐘，記錄三個平常不會注意到的細節。",
+   "致:選擇房間中的一個角落，靜坐兩分鐘，描述光線與陰影的變化。",
+   "致:在今天結束以前，找出身邊最舊的一件物品，寫下你記得的來源。",
+   "致:挑選一條每天都會經過的路，下一次經過時記住五個新的細節。",
+   "致:閉上眼睛三十秒，只依靠聲音判斷周圍有幾個聲源。",
+   "致:在安全的室內環境中保持安靜三分鐘，記錄期間出現的每一种聲音。",
+   "致:觀察一個時鐘完整走過一分鐘，不查看任何其他畫面。",
+   "致:在二十四小時內拍下一張畫面中沒有任何人的街景或室內空景。",
+   "致:找出房間中三個位置相近但材質完全不同的物品。",
+   "致:在日落以前，記錄天空顏色的三次變化。",
+   "致:在熟悉的場所停留兩分鐘，辨認其中最亮與最暗的位置。",
+   "致:選擇一個透明物件，觀察它如何改變後方的光線與形狀。",
+   "致:用一句話描述此刻空氣的溫度、氣味與聲音。",
+   "致:在不移動任何物品的情況下，找出房間裡最容易被忽略的東西。",
+   "致:觀察自己的影子一分鐘，記錄它在不同光源下的變化。",
+   "致:將一杯水放在桌面上，等待一分鐘後觀察杯壁與水面的細節。",
+   "致:在安全範圍內走一段平常熟悉的路，過程中不使用耳機。",
+   "致:在二十四小時內記錄一次你原本以為不會發生的小變化。",
+   "致:整理一個長時間沒有打開的電腦資料夾，刪除至少十個不需要的檔案。",
+   "致:在今天結束以前，替常用資料夾建立清楚的命名規則。",
+   "致:檢查瀏覽器書籤，移除五個已經不再需要的項目。",
+   "致:將桌面上最混亂的區域整理到能在十秒內找到需要的物品。",
+   "致:備份一份重要檔案，並確認備份確實能夠開啟。",
+   "致:在二十四小時內整理一份學習筆記，補上日期、標題與三個重點。",
+   "致:從手機或電腦中找出五張重複照片並完成整理。",
+   "致:檢查一個常用帳號的安全設定，確認已啟用可靠的登入保護。",
+   "致:將一个過長的待辦清單拆成三個能在三十分鐘內完成的小任務。",
+   "致:在今天結束以前，為目前的主要專案寫下一段最新進度摘要。",
+   "致:挑選一段自己寫過的程式碼，替其中三個重要函式補上簡短註解。",
+   "致:整理一個專案的檔案結構，移除或標記已經不再使用的測試檔。",
+   "致:建立一份只包含五項內容的明日待辦清單。",
+   "致:檢查下載資料夾，將需要保留的檔案移到正確位置。",
+   "致:替一個正在進行的專案建立版本編號與本次修改紀錄。",
+   "致:在二十四小時內清理一次電子郵件收件匣，處理至少十封不需要保留的郵件。",
+   "致:檢查最近建立的三個檔案，確認它們的名稱能清楚表達內容。",
+   "致:建立一個用來存放靈感、錯誤紀錄與待辦事項的固定資料夾。",
+   "致:選擇一個常用密碼以外的帳號，確認密碼沒有在其他地方重複使用。",
+   "致:在今天結束以前，替下一次大型修改建立一份回復方案。",
+   "致:寫下今天最困難的一件事，以及你最後採用的解決方式。",
+   "致:列出三件目前做得比一個月前更好的事情。",
+   "致:在二十四小時內完成一件拖延超過七天、但能在三十分鐘內完成的事情。",
+   "致:寫下一個目前最想解決的問題，再列出三個可能的第一步。",
+   "致:選擇一項最近學到的知識，用自己的話重新解釋一次。",
+   "致:替今天設定一個可以明確判定完成或未完成的小目標。",
+   "致:回想最近一次失敗的嘗試，寫下其中仍然有效的部分。",
+   "致:寫下三個你現在仍然不懂、但值得繼續追查的問題。",
+   "致:在今天結束以前，向一位值得信任的人表達一次真誠的感謝。",
+   "致:選擇一項目前最重要的任務，關閉其他視窗並專注十五分鐘。",
+   "致:寫下一句你希望未來一個月仍然記得的提醒。",
+   "致:將一個模糊的願望改寫成具有期限與完成條件的目標。",
+   "致:記錄今天做出的一個選擇，以及當時最主要的理由。",
+   "致:在二十四小時內完成一次不看答案的程式小練習。",
+   "致:找出一段由工具或人工智慧協助產生的程式碼，重新解釋每個區塊的用途。",
+   "致:將今天學到的一個新函式寫進筆記，附上輸入、輸出與最小範例。",
+   "致:選擇一個熟悉的漏洞類型，寫下成因、影響與修復方式。",
+   "致:用五分鐘回顧今天的錯誤紀錄，挑出最值得保留的一項。",
+   "致:替自己完成的一件作品寫下一段不超過一百字的技術說明。",
+   "致:在安全的室內環境中於凌晨一點前關閉主燈兩分鐘，只保留走廊燈，並記錄最先出現的三種聲音。",
+   "致:在睡前將一張白紙放在桌上，隔天醒來後立刻寫下第一個想到的詞。",
+   "致:在今天結束以前，讓房間保持完全安靜一分鐘，再播放一首熟悉的歌曲。",
+   "致:將鏡子中的自己觀察三十秒，然後轉身寫下最先記得的三個細節。",
+   "致:選擇一個平常不會注意的門或窗，記錄它開啟與關閉時的聲音。",
+   "致:在安全的室內空間中沿著牆面慢慢走一圈，記住四個轉角的位置。",
+   "致:把一個不透明盒子放在桌上，替它想像三種完全不同的內容物。",
+   "致:關閉螢幕十秒，再重新點亮，記錄第一個注意到的畫面元素。",
+   "致:在今晚以前，將一盞燈放到平常不會放置的位置，觀察陰影如何改變。",
+   "致:選擇一本書，翻到任意一頁，將第一句話改寫成一則警告。",
+   "致:在二十四小時內找到一個你從未點開過的舊檔案，確認內容後重新命名。",
+   "致:把房間裡的一個普通物品移動到新位置，隔天確認自己是否立刻察覺。",
+   "致:在熟悉的場所閉眼十秒，睜眼後指出視線中央最先出現的物件。",
+   "致:選擇一段走廊或通道，白天經過時數清楚其中的門與轉角。",
+   "致:在今天結束以前，寫下一句只有自己看得懂的暗號。",
+   "致:把三個沒有關聯的物品排成一列，替它們設定一個共同用途。",
+   "致:挑選一個時間，例如二十二點二十二分，在那一刻記錄你正在做的事情。",
+   "致:在二十四小時內完成一次十五分鐘的無聲工作，不播放音樂或影片。",
+   "致:選擇一個房間，離開前記住其中五個物件的位置，十分鐘後再回來核對。",
+   "致:替明天的自己預留一個五分鐘的空白時段，期間不處理任何通知。",
+   "致:在今天結束以前，將一個令人分心的應用程式暫時移出首頁。",
+   "致:在24小時內向你喜歡的女生告白直到收到'接受''拒絕'回復",
+   "致:把圓周率算完才可以回家",
+   "致:對你喜歡的人說'我愛你'並得到他的擁抱",
+];
+
+		const scrambleSymbols = Array.from(
+			"▓▒░01<>[]{}#$%&*+=?/\\ΔΩ※ЖЯΞλβ"
+		);
+
+		const viewButton = document.getElementById("viewButton");
+		const terminalOutput = document.getElementById("terminalOutput");
+		const flash = document.getElementById("flash");
+		const statusText = document.getElementById("status");
+		const counter = document.getElementById("counter");
+		const symbolImage = document.getElementById("symbolImage");
+		const symbolFallback = document.getElementById("symbolFallback");
+
+		const storageKey = "hermes-terminal-used-v1";
+
+		let audioContext = null;
+		let terminalNoiseBuffer = null;
+		let isDecoding = false;
+		let usedIndexes = loadUsedIndexes();
+
+		function wait(milliseconds) {
+			return new Promise(function (resolve) {
+				setTimeout(resolve, milliseconds);
+			});
+		}
+
+		function loadUsedIndexes() {
+			try {
+				const saved = JSON.parse(
+					localStorage.getItem(storageKey) || "[]"
+				);
+
+				if (!Array.isArray(saved)) return [];
+
+				return saved.filter(function (value) {
+					return (
+						Number.isInteger(value) &&
+						value >= 0 &&
+						value < commands.length
+					);
+				});
+			} catch (error) {
+				return [];
+			}
+		}
+
+		function saveUsedIndexes() {
+			try {
+				localStorage.setItem(
+					storageKey,
+					JSON.stringify(usedIndexes)
+				);
+			} catch (error) {
+				console.warn("無法儲存指令記錄：", error);
+			}
+		}
+
+		function updateCounter() {
+			const remaining =
+				commands.length - usedIndexes.length;
+
+			counter.textContent =
+				"REMAINING " +
+				String(remaining).padStart(3, "0") +
+				" / " +
+				String(commands.length).padStart(3, "0");
+
+			if (remaining <= 0) {
+				viewButton.disabled = true;
+				viewButton.textContent = "指令庫已耗盡";
+				statusText.textContent =
+					"赫爾墨斯協議：全部指令均已發送。";
+			}
+		}
+
+		function getUnusedCommand() {
+			const available = [];
+
+			for (
+				let index = 0;
+				index < commands.length;
+				index += 1
+			) {
+				if (!usedIndexes.includes(index)) {
+					available.push(index);
+				}
+			}
+
+			if (available.length === 0) return null;
+
+			const chosenIndex =
+				available[
+					Math.floor(
+						Math.random() *
+						available.length
+					)
+				];
+
+			usedIndexes.push(chosenIndex);
+			saveUsedIndexes();
+			updateCounter();
+
+			return commands[chosenIndex];
+		}
+
+		function ensureAudioContext() {
+			audioContext ??= new AudioContext();
+
+			if (audioContext.state === "suspended") {
+				audioContext.resume();
+			}
+		}
+
+		function playTone(
 			frequency,
-			startTime
-		);
+			duration,
+			delay = 0,
+			type = "sine",
+			volume = 0.04
+		) {
+			ensureAudioContext();
 
-		gain.gain.setValueAtTime(
-			volume,
-			startTime
-		);
+			const startTime =
+				audioContext.currentTime + delay;
 
-		gain.gain.exponentialRampToValueAtTime(
-			0.001,
-			startTime + duration
-		);
+			const oscillator =
+				audioContext.createOscillator();
 
-		oscillator.connect(gain);
-		gain.connect(audioContext.destination);
+			const gain =
+				audioContext.createGain();
 
-		oscillator.start(startTime);
-		oscillator.stop(startTime + duration);
-	}
+			oscillator.type = type;
+			oscillator.frequency.setValueAtTime(
+				frequency,
+				startTime
+			);
 
-	function playButtonBeeps() {
-		playTone(850, 0.08, 0, "square", 0.035);
-		playTone(1120, 0.09, 0.11, "square", 0.03);
-	}
+			gain.gain.setValueAtTime(
+				volume,
+				startTime
+			);
 
-	function playDecodeNote(step) {
-		const frequencies = [
-			410,
-			510,
-			610,
-			510
-		];
+			gain.gain.exponentialRampToValueAtTime(
+				0.001,
+				startTime + duration
+			);
 
-		const frequency =
-			frequencies[
-				step % frequencies.length
+			oscillator.connect(gain);
+			gain.connect(audioContext.destination);
+
+			oscillator.start(startTime);
+			oscillator.stop(startTime + duration);
+		}
+
+		function playButtonBeeps() {
+			playTone(900, 0.075, 0, "square", 0.032);
+			playTone(1180, 0.085, 0.1, "square", 0.028);
+		}
+
+		function getTerminalNoiseBuffer() {
+			ensureAudioContext();
+
+			if (terminalNoiseBuffer) {
+				return terminalNoiseBuffer;
+			}
+
+			const duration = 0.045;
+			const frameCount = Math.floor(
+				audioContext.sampleRate * duration
+			);
+
+			terminalNoiseBuffer =
+				audioContext.createBuffer(
+					1,
+					frameCount,
+					audioContext.sampleRate
+				);
+
+			const channel =
+				terminalNoiseBuffer.getChannelData(0);
+
+			for (
+				let index = 0;
+				index < frameCount;
+				index += 1
+			) {
+				const progress =
+					index / frameCount;
+
+				const decay =
+					Math.pow(1 - progress, 4);
+
+				channel[index] =
+					(Math.random() * 2 - 1) *
+					decay;
+			}
+
+			return terminalNoiseBuffer;
+		}
+
+		function playTerminalNoiseClick(
+			delay = 0,
+			volume = 0.006
+		) {
+			ensureAudioContext();
+
+			const startTime =
+				audioContext.currentTime + delay;
+
+			const source =
+				audioContext.createBufferSource();
+
+			const bandPass =
+				audioContext.createBiquadFilter();
+
+			const highPass =
+				audioContext.createBiquadFilter();
+
+			const gain =
+				audioContext.createGain();
+
+			source.buffer =
+				getTerminalNoiseBuffer();
+
+			bandPass.type = "bandpass";
+			bandPass.frequency.setValueAtTime(
+				2350 + Math.random() * 900,
+				startTime
+			);
+			bandPass.Q.setValueAtTime(
+				1.4,
+				startTime
+			);
+
+			highPass.type = "highpass";
+			highPass.frequency.setValueAtTime(
+				900,
+				startTime
+			);
+
+			gain.gain.setValueAtTime(
+				volume,
+				startTime
+			);
+
+			gain.gain.exponentialRampToValueAtTime(
+				0.001,
+				startTime + 0.032
+			);
+
+			source.connect(bandPass);
+			bandPass.connect(highPass);
+			highPass.connect(gain);
+			gain.connect(audioContext.destination);
+
+			source.start(startTime);
+			source.stop(startTime + 0.04);
+		}
+
+		function playTerminalGlyphSound(step) {
+			ensureAudioContext();
+
+			const pattern = [
+				0,
+				42,
+				-26,
+				73,
+				15,
+				-38,
+				55
 			];
 
-		playTone(
-			frequency,
-			0.11,
-			0,
-			"sine",
-			0.025
-		);
-	}
+			const baseFrequency =
+				620 +
+				pattern[
+					step % pattern.length
+				];
 
-	function playDecodeComplete() {
-		playTone(520, 0.13, 0, "sine", 0.04);
-		playTone(680, 0.15, 0.1, "sine", 0.045);
-		playTone(880, 0.2, 0.21, "sine", 0.04);
-	}
+			const startTime =
+				audioContext.currentTime;
 
-	function getRandomCommand() {
-		let index;
+			const oscillator =
+				audioContext.createOscillator();
 
-		do {
-			index = Math.floor(
-				Math.random() * commands.length
+			const lowPass =
+				audioContext.createBiquadFilter();
+
+			const gain =
+				audioContext.createGain();
+
+			oscillator.type = "square";
+
+			oscillator.frequency.setValueAtTime(
+				baseFrequency + 145,
+				startTime
 			);
-		} while (
-			commands.length > 1 &&
-			index === lastCommandIndex
-		);
 
-		lastCommandIndex = index;
+			oscillator.frequency.exponentialRampToValueAtTime(
+				baseFrequency,
+				startTime + 0.026
+			);
 
-		return commands[index];
-	}
+			lowPass.type = "lowpass";
+			lowPass.frequency.setValueAtTime(
+				1850,
+				startTime
+			);
+			lowPass.Q.setValueAtTime(
+				0.7,
+				startTime
+			);
 
-	function getRandomSymbol() {
-		const index = Math.floor(
-			Math.random() *
-			scrambleSymbols.length
-		);
+			gain.gain.setValueAtTime(
+				0.0105,
+				startTime
+			);
 
-		return scrambleSymbols[index];
-	}
+			gain.gain.exponentialRampToValueAtTime(
+				0.001,
+				startTime + 0.031
+			);
 
-	function shouldKeepCharacter(character) {
-		return (
-			character === " " ||
-			character === "\n" ||
-			/[，。！？、：；「」『』（）【】0-9]/.test(
-				character
-			)
-		);
-	}
+			oscillator.connect(lowPass);
+			lowPass.connect(gain);
+			gain.connect(audioContext.destination);
 
-	function buildScrambledText(
-		characters,
-		revealedCount
-	) {
-		return characters
-			.map(function (character, index) {
-				if (
-					index < revealedCount ||
-					shouldKeepCharacter(character)
-				) {
-					return character;
+			oscillator.start(startTime);
+			oscillator.stop(startTime + 0.034);
+
+			playTerminalNoiseClick(
+				0,
+				0.0055
+			);
+
+			if (step % 7 === 0) {
+				playTone(
+					baseFrequency + 260,
+					0.016,
+					0.024,
+					"square",
+					0.0045
+				);
+
+				playTerminalNoiseClick(
+					0.022,
+					0.0035
+				);
+			}
+		}
+
+		function playCompleteSound() {
+			playTone(520, 0.12, 0, "sine", 0.04);
+			playTone(690, 0.14, 0.09, "sine", 0.042);
+			playTone(920, 0.19, 0.2, "sine", 0.038);
+		}
+
+		function getRandomSymbol() {
+			return scrambleSymbols[
+				Math.floor(
+					Math.random() *
+					scrambleSymbols.length
+				)
+			];
+		}
+
+		function shouldKeepCharacter(character) {
+			return (
+				character === " " ||
+				character === "\n" ||
+				/[，。！？、：；「」『』（）【】0-9]/.test(
+					character
+				)
+			);
+		}
+
+		function buildScrambledText(
+			characters,
+			revealedCount
+		) {
+			return characters
+				.map(function (character, index) {
+					if (
+						index < revealedCount ||
+						shouldKeepCharacter(character)
+					) {
+						return character;
+					}
+
+					return getRandomSymbol();
+				})
+				.join("");
+		}
+
+		function renderDecodeScreen(
+			scrambledText,
+			progress
+		) {
+			const percent = String(
+				Math.floor(progress * 100)
+			).padStart(3, "0");
+
+			terminalOutput.textContent =
+				"[HERMES] 指令封包已接收\n" +
+				"[DECODE] 解密進度：" +
+				percent +
+				"%\n\n" +
+				scrambledText;
+		}
+
+		async function decodeCommand(command) {
+			const completeText =
+				"【本次指令】\n" + command;
+
+			const characters =
+				Array.from(completeText);
+
+			const totalFrames =
+				Math.max(
+					54,
+					characters.length * 2
+				);
+
+			terminalOutput.classList.add("decoding");
+
+			for (
+				let frame = 0;
+				frame <= totalFrames;
+				frame += 1
+			) {
+				const progress =
+					frame / totalFrames;
+
+				const easedProgress =
+					1 -
+					Math.pow(
+						1 - progress,
+						2.35
+					);
+
+				const revealedCount =
+					Math.floor(
+						easedProgress *
+						characters.length
+					);
+
+				renderDecodeScreen(
+					buildScrambledText(
+						characters,
+						revealedCount
+					),
+					progress
+				);
+
+				if (frame % 2 === 0) {
+					playTerminalGlyphSound(
+						Math.floor(frame / 2)
+					);
 				}
 
-				return getRandomSymbol();
-			})
-			.join("");
-	}
-
-	function renderDecodeScreen(
-		scrambledText,
-		progress
-	) {
-		const percent = String(
-			Math.floor(progress * 100)
-		).padStart(2, "0");
-
-		terminalOutput.textContent =
-			"[PROTOCOL] 指令封包已接收\n" +
-			"[DECODE] 解密進度：" +
-			percent +
-			"%\n\n" +
-			scrambledText;
-	}
-
-	async function decodeCommand(command) {
-		const prefix =
-			"【本次指令】\n";
-
-		const completeText =
-			prefix + command;
-
-		const characters =
-			Array.from(completeText);
-
-		const totalFrames =
-			Math.max(
-				36,
-				characters.length * 2
-			);
-
-		terminalOutput.classList.add(
-			"decoding"
-		);
-
-		for (
-			let frame = 0;
-			frame <= totalFrames;
-			frame += 1
-		) {
-			const progress =
-				frame / totalFrames;
-
-			const easedProgress =
-				1 -
-				Math.pow(
-					1 - progress,
-					2.4
-				);
-
-			const revealedCount =
-				Math.floor(
-					easedProgress *
-					characters.length
-				);
-
-			const scrambledText =
-				buildScrambledText(
-					characters,
-					revealedCount
-				);
-
-			renderDecodeScreen(
-				scrambledText,
-				progress
-			);
-
-			if (frame % 5 === 0) {
-				playDecodeNote(
-					Math.floor(frame / 5)
+				await wait(
+					30 + Math.random() * 20
 				);
 			}
 
-			await wait(
-				34 + Math.random() * 22
-			);
-		}
-
-		terminalOutput.classList.remove(
-			"decoding"
-		);
-
-		terminalOutput.textContent =
-			"[PROTOCOL] 解密完成\n" +
-			"[STATUS] 指令已正式生效\n\n" +
-			completeText;
-
-		const cursor =
-			document.createElement("span");
-
-		cursor.className = "cursor";
-		terminalOutput.appendChild(cursor);
-
-		playDecodeComplete();
-	}
-
-	viewButton.addEventListener(
-		"click",
-		async function () {
-			if (isDecoding) return;
-
-			isDecoding = true;
-			viewButton.disabled = true;
-			viewButton.textContent =
-				"接收中...";
-
-			playButtonBeeps();
-
-			flash.classList.remove(
-				"active"
-			);
-
-			void flash.offsetWidth;
-
-			flash.classList.add(
-				"active"
-			);
-
-			terminalOutput.classList.add(
-				"visible"
-			);
+			terminalOutput.classList.remove("decoding");
 
 			terminalOutput.textContent =
-				"[SIGNAL] 偵測到未知封包...\n" +
-				"[STATUS] 等待解密程序啟動...";
+				"[HERMES] 解密完成\n" +
+				"[STATUS] 指令已正式生效\n\n" +
+				completeText;
 
-			await wait(550);
+			const cursor =
+				document.createElement("span");
 
-			const command =
-				getRandomCommand();
+			cursor.className = "cursor";
+			terminalOutput.appendChild(cursor);
 
-			await decodeCommand(command);
-
-			viewButton.textContent =
-				"查看下一項指令";
-
-			viewButton.disabled = false;
-			isDecoding = false;
+			playCompleteSound();
 		}
-	);
-</script>
+
+		viewButton.addEventListener(
+			"click",
+			async function () {
+				if (isDecoding) return;
+
+				const command =
+					getUnusedCommand();
+
+				if (!command) {
+					updateCounter();
+					return;
+				}
+
+				isDecoding = true;
+				viewButton.disabled = true;
+				viewButton.textContent = "接收中...";
+
+				statusText.textContent =
+					"赫爾墨斯協議：正在接收未知封包...";
+
+				playButtonBeeps();
+
+				flash.classList.remove("active");
+				void flash.offsetWidth;
+				flash.classList.add("active");
+
+				terminalOutput.classList.add("visible");
+				terminalOutput.textContent =
+					"[SIGNAL] 偵測到未知封包...\n" +
+					"[STATUS] 正在建立解密程序...";
+
+				await wait(520);
+				await decodeCommand(command);
+
+				statusText.textContent =
+					"赫爾墨斯協議：等待下一次調用。";
+
+				viewButton.textContent =
+					"查看下一項指令";
+
+				viewButton.disabled = false;
+				isDecoding = false;
+
+				updateCounter();
+			}
+		);
+
+		symbolImage.addEventListener("error", function () {
+			symbolImage.style.display = "none";
+			symbolFallback.style.display = "block";
+		});
+
+		updateCounter();
+	</script>
+</body>
+</html>
