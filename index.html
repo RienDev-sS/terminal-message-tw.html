@@ -609,27 +609,211 @@
 	</main>
 
 	<script>
-		const commands = [
+/*
+         * HERMES 動態指令引擎
+         * 不依賴 API；使用相容的中文詞庫和句型，即時組合出可執行的任務。
+         * 想增加變化：擴充 WORDS 的詞庫，或在 TASK_TEMPLATES 增加句型。
+         */
+        const WORDS = {
+            subjects: ["國文", "英文", "數學", "自然", "社會", "今天正在讀的科目"],
+            quickMinutes: ["三", "五", "十"],
+            focusMinutes: ["十", "十五", "二十"],
+            quantities: ["兩", "三", "四"],
+            noteMethods: ["兩句話", "三個關鍵字", "一個簡單的表格", "一張小小的心智圖"],
+            questionTypes: ["簡單的", "曾經做錯的", "還不太熟悉的", "最近練習過的"],
+            studyActions: ["複習", "重新閱讀", "整理", "回想"],
+            studyMaterials: ["手邊的課本", "最近整理的筆記", "今天的講義", "之前做過的練習"],
+            readingMaterials: ["手邊的課本", "最近整理的筆記", "今天的講義"],
+            studyTargets: ["一個容易忘記的重點", "一個剛學會的觀念", "一項還不熟悉的內容", "一個常考的主題"],
+            revisionTopics: ["容易搞混的觀念", "上次寫錯的地方", "新學會的重點", "最需要加強的地方"],
+            writingUnits: ["一句話", "兩句話", "三個關鍵字"],
+            encouragement: ["今天有好好努力", "慢慢來也算進步", "願意開始就很不錯", "完成一點也是累積"],
+            deskItems: ["課本", "筆記本", "文具", "書包裡的物品", "桌面上的小東西"],
+            tinyAreas: ["桌面的一個角落", "書包的一個夾層", "手機的首頁", "讀書用品旁邊", "筆袋裡面"],
+            smallHabits: ["把水杯放在順手的位置", "確認下一段要讀哪一頁", "把明天要用的筆準備好", "標記一個待完成的進度"],
+            happyTopics: ["今天最有趣的事情", "最近讓你開心的一件小事", "今天值得感謝的一件事", "目前最期待的一件小事"],
+            imaginations: ["一個會說話的文具", "一個可以暫停時間的書包", "一間開在雲上的圖書館", "一隻愛讀書的小動物", "一張有魔法的便條紙"],
+            creativeFormats: ["一句有趣的介紹詞", "一個兩句話的故事", "一句動漫風格台詞", "一個簡單的標語"],
+            everydayObjects: ["鉛筆", "橡皮擦", "水杯", "書籤", "耳機", "背包", "便條紙", "手機殼"],
+            titles: ["今日冒險者", "專注小隊長", "解題魔法師", "任務探險家", "知識收集員", "靈感觀察員"],
+            musicMoods: ["放鬆", "有精神", "溫柔", "懷舊", "開心"],
+            songMemories: ["最近喜歡的", "以前常聽的", "讓自己有精神的", "能讓心情平靜的"],
+            favoriteMedia: ["喜歡的動漫", "喜歡的電影", "最近看的影片", "玩過的遊戲"],
+            mediaTasks: ["挑出一個喜歡的角色", "說出最喜歡的一個場景", "用一句話推薦給朋友", "想一個有趣的續集名稱"],
+            quickDoodles: ["一顆星星", "一朵花", "一隻小貓", "一個笑臉", "一個神祕符號", "一個迷你徽章"],
+            friendTopics: ["最近聽到的一首歌", "今天學到的小知識", "一個可愛的貼圖", "一件值得開心的小事", "最近想玩的遊戲"],
+            compliments: ["謝謝你願意陪我", "跟你聊天很開心", "你今天很努力", "我很珍惜我們的相處", "希望你今天順利"],
+            easyQuestions: ["今天過得怎麼樣？", "最近有沒有喜歡的歌？", "今天最開心的事是什麼？", "現在比較想休息還是聊天？"],
+            romanceMessages: ["今天有想到你", "跟你一起相處很開心", "我很喜歡和你聊天", "你對我來說很特別"],
+            rewardIdeas: ["一顆糖果", "五分鐘自由休息", "一首自己選的歌", "一句給自己的稱讚", "一張自己畫的小獎章"],
+            restfulActivities: ["喝幾口水", "起身走動一下", "伸展肩膀", "眺望遠方", "放下手機休息眼睛", "慢慢整理桌面"],
+            observationThings: ["窗外的天空", "桌上的一本書", "身旁的光影", "今天的天氣", "眼前的一個小物品"],
+            observationDetails: ["三個小細節", "一個平常忽略的特徵", "兩個不同的顏色", "一個讓你感到有趣的地方"],
+            gameGenres: ["雙人合作", "解謎", "冒險", "休閒", "節奏", "劇情"],
+            reviewOptions: ["今天讀過的一小段內容", "上次不會的一題", "一個熟悉的公式", "前幾天學到的單字"],
+            feelings: ["開心", "平靜", "有點疲累", "充滿精神", "期待", "需要休息"],
+            futureMoments: ["今天睡前", "明天起床後", "下一次讀書前", "這週結束前"],
+            tinyGoals: ["完成一道練習題", "整理三個重點", "讀完兩頁內容", "複習五個單字", "看懂一段不熟悉的解說"]
+        };
 
-   "致:播放一首你/妳喜歡的音樂，跟你/妳喜歡的人一起聽完",
-   "致:選一段最熟悉的中二台詞，模仿一遍",
-   "致:找出一首三年以上沒有播放過的歌曲，完整聽完一次。",
-   "致:獎勵一顆小糖果",
-   "致:從現在開始認真讀書",
-   "致:今天放鬆休息好好的獎勵自己",
-   "致:向陪伴的人說出妳/你現在最想要做什麼",
-   "致:向喜歡的人說出你/妳喜歡什麼",
-   "致:什麼都不要做，休息五分鐘",
-   "致:找到一款想玩的遊戲",
-   "致:用一句話描述此刻空氣的溫度、氣味與聲音。",
-   "致:把圓周率算完才可以回家",
-   "致:對你喜歡的人說'我愛你'並得到他的擁抱",
-   "致:如果此時妳/你的心情不太好，就找一個願意陪你的人宣洩情緒",
-   "致:找一個人說出至今為止你/妳認為做過最白癡的事情",
-	"致:去超商或者居酒屋喝酒",
-    "致: 把相簿裡面妳/你覺得最有趣的一張照片給喜歡的人看"
-			
-];
+        const pick = (items) => items[Math.floor(Math.random() * items.length)];
+
+        // 每個句型只選擇語意相容的詞庫；不做「全詞庫亂數拼接」。
+        const TASK_TEMPLATES = [
+            // 讀書類：佔較高機率，方便在圖書館使用。
+            { category: "學習", make: () => `花${pick(WORDS.quickMinutes)}分鐘，${pick(WORDS.studyActions)}${pick(WORDS.studyMaterials)}裡的${pick(WORDS.studyTargets)}。` },
+            { category: "學習", make: () => `從${pick(WORDS.subjects)}挑一道${pick(WORDS.questionTypes)}題目，先自己試著解，再核對答案。` },
+            { category: "學習", make: () => `把${pick(WORDS.subjects)}最近讀過的一個觀念，用${pick(WORDS.noteMethods)}整理起來。` },
+            { category: "學習", make: () => `花${pick(WORDS.focusMinutes)}分鐘專心讀${pick(WORDS.subjects)}，中途不用急著看訊息。` },
+            { category: "學習", make: () => `從今天的筆記找出${pick(WORDS.quantities)}個關鍵字，試著不看答案說出意思。` },
+            { category: "學習", make: () => `挑一個${pick(WORDS.revisionTopics)}，用${pick(WORDS.writingUnits)}寫下你現在的理解。` },
+            { category: "學習", make: () => `從${pick(WORDS.readingMaterials)}挑一小段，讀完後用自己的話講解一次。` },
+            { category: "學習", make: () => `挑一題上次不會的題目，只要弄懂第一個解題步驟就算完成。` },
+            { category: "學習", make: () => `替今天的讀書安排一個小目標，例如「${pick(WORDS.tinyGoals)}」。` },
+            { category: "學習", make: () => `找出${pick(WORDS.subjects)}中一項已經懂的內容，試著像老師一樣解釋給自己聽。` },
+            { category: "學習", make: () => `複習${pick(WORDS.reviewOptions)}，說出一件比上次更清楚的事。` },
+            { category: "學習", make: () => `將今天想讀的內容拆成${pick(WORDS.quantities)}個小步驟，先完成第一步。` },
+            { category: "學習", make: () => `用${pick(WORDS.quickMinutes)}分鐘整理一題錯題，標出原本卡住的位置。` },
+            { category: "學習", make: () => `不看筆記，回想${pick(WORDS.subjects)}的一個學習重點，之後再確認。` },
+            { category: "學習", make: () => `找${pick(WORDS.quantities)}個英文單字，查清楚意思，再試著說出其中一個例句。` },
+            { category: "學習", make: () => `設定${pick(WORDS.focusMinutes)}分鐘計時，專心完成一小段自己選的學習內容。` },
+            { category: "學習", make: () => `幫自己寫下一句讀書提醒：「${pick(WORDS.encouragement)}」。` },
+            { category: "學習", make: () => `從${pick(WORDS.subjects)}找出一個值得複習的地方，做上一個清楚的記號。` },
+
+            // 整理類：只涉及自己可以控制的小事。
+            { category: "生活", make: () => `花${pick(WORDS.quickMinutes)}分鐘整理${pick(WORDS.tinyAreas)}，讓下一次使用更方便。` },
+            { category: "生活", make: () => `整理一下${pick(WORDS.deskItems)}，只要完成一小部分就可以。` },
+            { category: "生活", make: () => `替明天準備一件小事：${pick(WORDS.smallHabits)}。` },
+            { category: "生活", make: () => `寫下${pick(WORDS.futureMoments)}想完成的一個簡單目標。` },
+            { category: "生活", make: () => `從今天的待辦事項中挑出最重要的一件，先進行${pick(WORDS.quickMinutes)}分鐘。` },
+            { category: "生活", make: () => `替你手邊的${pick(WORDS.deskItems)}找一個固定位置，方便下次取用。` },
+            { category: "生活", make: () => `在紙上記下${pick(WORDS.quantities)}件今天有完成的小事。` },
+            { category: "生活", make: () => `準備開始讀書前，${pick(WORDS.smallHabits)}。` },
+
+            // 創意類：不要求技能或昂貴材料。
+            { category: "創意", make: () => `把「${pick(WORDS.imaginations)}」當作主角，寫出${pick(WORDS.creativeFormats)}。` },
+            { category: "創意", make: () => `替${pick(WORDS.everydayObjects)}設計一種有趣但無害的超能力。` },
+            { category: "創意", make: () => `花兩分鐘畫出${pick(WORDS.quickDoodles)}，不需要畫得完美。` },
+            { category: "創意", make: () => `用${pick(WORDS.writingUnits)}描述${pick(WORDS.happyTopics)}。` },
+            { category: "創意", make: () => `替今天的自己取一個稱號，例如「${pick(WORDS.titles)}」。` },
+            { category: "創意", make: () => `選一樣身邊的小物品，例如${pick(WORDS.everydayObjects)}，想像它出現在動漫裡會有什麼台詞。` },
+            { category: "創意", make: () => `替今天發生的一件小事取一個像動漫單集的標題。` },
+            { category: "創意", make: () => `用${pick(WORDS.noteMethods)}記錄剛剛冒出的一個小點子。` },
+
+            // 休閒類：短、簡單、適合讀書間隔。
+            { category: "休閒", make: () => `播放一首${pick(WORDS.songMemories)}歌，認真聽完一次。` },
+            { category: "休閒", make: () => `從相簿挑一張喜歡的照片，回想當時發生的一件好事。` },
+            { category: "休閒", make: () => `想一想${pick(WORDS.favoriteMedia)}，試著${pick(WORDS.mediaTasks)}。` },
+            { category: "休閒", make: () => `花三分鐘找一首符合「${pick(WORDS.musicMoods)}」心情的歌曲，加入播放清單。` },
+            { category: "休閒", make: () => `挑一款${pick(WORDS.gameGenres)}類型的遊戲，記下它吸引你的一個原因。` },
+            { category: "休閒", make: () => `看一張讓你覺得有趣的貼圖，替它想一句新的對白。` },
+            { category: "休閒", make: () => `想一想最近最想嘗試的休閒活動，用一句話記下來。` },
+            { category: "休閒", make: () => `完成一個小目標後，用${pick(WORDS.rewardIdeas)}獎勵自己。` },
+
+            // 休息類：不會要求出門、開車或做高風險活動。
+            { category: "休息", make: () => `放下手邊的事，${pick(WORDS.restfulActivities)}，再決定要不要繼續。` },
+            { category: "休息", make: () => `稍微看看${pick(WORDS.observationThings)}，找出${pick(WORDS.observationDetails)}。` },
+            { category: "休息", make: () => `休息${pick(WORDS.quickMinutes)}分鐘，不用替自己安排任何額外任務。` },
+            { category: "休息", make: () => `試著用一句話描述現在是「${pick(WORDS.feelings)}」的心情，看看是否符合。` },
+            { category: "休息", make: () => `用一句話記錄「${pick(WORDS.happyTopics)}」，讓今天多一個值得記住的瞬間。` },
+            { category: "休息", make: () => `看看目前最需要的是喝水、休息還是繼續讀書，選一件適合自己的事。` },
+
+            // 社交類：事先確認對方願意互動，沒有強制回覆。
+            { category: "互動", make: () => `如果現在適合聊天，向一位願意互動的朋友分享${pick(WORDS.friendTopics)}。` },
+            { category: "互動", make: () => `如果你願意，向一位在乎的人送上一句話：「${pick(WORDS.compliments)}」。` },
+            { category: "互動", make: () => `如果對方有空，問一位朋友：「${pick(WORDS.easyQuestions)}」` },
+            { category: "互動", make: () => `挑一首你覺得值得推薦的歌曲，在對方願意聽時分享給他。` },
+            { category: "互動", make: () => `選一個最近學到的有趣知識，分享給願意聽的人。` },
+            { category: "互動", make: () => `如果現在不方便聊天，就寫下一句想對朋友說的話，改天再分享。` },
+
+            // 心意類：稀有彩蛋，完全自願；不需要對方答應或擁抱。
+            { category: "心意", make: () => `如果你願意，可以對喜歡的人說：「${pick(WORDS.romanceMessages)}」。` },
+            { category: "心意", make: () => `想一件與喜歡的人相處時開心的小事，寫下一句回憶。` },
+            { category: "心意", make: () => `如果彼此都願意，邀請喜歡的人一起聽一首歌或聊聊天。` },
+            { category: "心意", make: () => `如果你想表達心意，寫一句真誠的話；要不要送出，可以自己決定。` },
+            { category: "心意", make: () => `如果你真的想說，可以對喜歡的人說「我愛你」，也尊重對方當下的回應和感受。` }
+        ];
+
+        // 不同類型出現的權重：讓讀書任務相對常見，戀愛彩蛋比較稀有。
+        const CATEGORY_WEIGHTS = {
+            "學習": 35, "生活": 13, "創意": 13, "休閒": 12,
+            "休息": 12, "互動": 11, "心意": 4
+        };
+
+        const historyStorageKey = "hermes-generated-command-history-v1";
+        const countStorageKey = "hermes-generated-command-count-v1";
+        const MAX_HISTORY = 200;
+        let recentCommands = readHistory();
+        let generatedCount = readCount();
+        let lastCategory = "";
+        let lastTemplateIndex = -1;
+
+        function readHistory() {
+            try {
+                const saved = JSON.parse(localStorage.getItem(historyStorageKey) || "[]");
+                return Array.isArray(saved) ? saved.filter((s) => typeof s === "string").slice(-MAX_HISTORY) : [];
+            } catch (error) { return []; }
+        }
+
+        function readCount() {
+            try {
+                const number = Number(localStorage.getItem(countStorageKey) || 0);
+                return Number.isFinite(number) && number >= 0 ? Math.floor(number) : 0;
+            } catch (error) { return 0; }
+        }
+
+        function saveGenerationState() {
+            try {
+                localStorage.setItem(historyStorageKey, JSON.stringify(recentCommands));
+                localStorage.setItem(countStorageKey, String(generatedCount));
+            } catch (error) {
+                console.warn("無法儲存產生紀錄：", error);
+            }
+        }
+
+        function chooseTemplate() {
+            const categories = Object.keys(CATEGORY_WEIGHTS);
+            let category;
+            // 降低連續抽到同一類的機率，仍保留一點驚喜。
+            const eligible = categories.filter((c) => c !== lastCategory);
+            const totalWeight = eligible.reduce((sum, c) => sum + CATEGORY_WEIGHTS[c], 0);
+            let roll = Math.random() * totalWeight;
+            category = eligible[eligible.length - 1];
+            for (const c of eligible) {
+                roll -= CATEGORY_WEIGHTS[c];
+                if (roll < 0) { category = c; break; }
+            }
+            const candidates = TASK_TEMPLATES
+                .map((template, index) => ({...template, index}))
+                .filter((template) => template.category === category && template.index !== lastTemplateIndex);
+            return pick(candidates.length ? candidates : TASK_TEMPLATES.map((template, index) => ({...template, index})));
+        }
+
+        function generateCommand() {
+            let result = "";
+            let chosen = null;
+            // 最多重新生成 80 次，避免近期重複。即使詞庫未來縮小也不會卡住。
+            for (let attempt = 0; attempt < 80; attempt += 1) {
+                const template = chooseTemplate();
+                const text = "致:" + template.make();
+                if (!recentCommands.includes(text)) {
+                    result = text;
+                    chosen = template;
+                    break;
+                }
+            }
+            if (!chosen) {
+                chosen = chooseTemplate();
+                result = "致:" + chosen.make();
+            }
+            lastCategory = chosen.category;
+            lastTemplateIndex = chosen.index;
+            recentCommands.push(result);
+            recentCommands = recentCommands.slice(-MAX_HISTORY);
+            generatedCount += 1;
+            saveGenerationState();
+            return result;
+        }
 
 		const scrambleSymbols = Array.from(
 			"▓▒░01<>[]{}#$%&*+=?/\\ΔΩ※ЖЯΞλβ"
@@ -644,15 +828,13 @@
 		const symbolImage = document.getElementById("symbolImage");
 		const symbolFallback = document.getElementById("symbolFallback");
 
-		const storageKey = "hermes-terminal-used-v1";
 		const visitStorageKey = "hermes-local-visit-count-v1";
 
-		let audioContext = null;
-		let terminalNoiseBuffer = null;
-		let isDecoding = false;
-		let usedIndexes = loadUsedIndexes();
+        let audioContext = null;
+        let terminalNoiseBuffer = null;
+        let isDecoding = false;
 
-		function wait(milliseconds) {
+        function wait(milliseconds) {
 			return new Promise(function (resolve) {
 				setTimeout(resolve, milliseconds);
 			});
@@ -698,88 +880,24 @@
 				);
 		}
 
-		function loadUsedIndexes() {
-			try {
-				const saved = JSON.parse(
-					localStorage.getItem(storageKey) || "[]"
-				);
-
-				if (!Array.isArray(saved)) return [];
-
-				return saved.filter(function (value) {
-					return (
-						Number.isInteger(value) &&
-						value >= 0 &&
-						value < commands.length
-					);
-				});
-			} catch (error) {
-				return [];
-			}
-		}
-
-		function saveUsedIndexes() {
-			try {
-				localStorage.setItem(
-					storageKey,
-					JSON.stringify(usedIndexes)
-				);
-			} catch (error) {
-				console.warn("無法儲存指令記錄：", error);
-			}
-		}
-
 		function updateCounter() {
-			const remaining =
-				commands.length - usedIndexes.length;
+            // 動態生成不存在「指令庫耗盡」，計數只表示這台裝置抽了幾次。
+            counter.textContent = String(generatedCount).padStart(4, "0") + " / ∞";
+        }
 
-			counter.textContent = "??? / ???";
-
-			if (remaining <= 0) {
-				viewButton.disabled = true;
-				viewButton.textContent = "指令庫已耗盡";
-				statusText.textContent =
-					"赫爾墨斯協議：全部指令均已發送。";
-			}
-		}
-
-		function getUnusedCommand() {
-			const available = [];
-
-			for (
-				let index = 0;
-				index < commands.length;
-				index += 1
-			) {
-				if (!usedIndexes.includes(index)) {
-					available.push(index);
-				}
-			}
-
-			if (available.length === 0) return null;
-
-			const chosenIndex =
-				available[
-					Math.floor(
-						Math.random() *
-						available.length
-					)
-				];
-
-			usedIndexes.push(chosenIndex);
-			saveUsedIndexes();
-			updateCounter();
-
-			return commands[chosenIndex];
-		}
-
-		function ensureAudioContext() {
-			audioContext ??= new AudioContext();
-
-			if (audioContext.state === "suspended") {
-				audioContext.resume();
-			}
-		}
+        function ensureAudioContext() {
+            const Context = window.AudioContext || window.webkitAudioContext;
+            if (!Context) return false;
+            try {
+                audioContext ??= new Context();
+                if (audioContext.state === "suspended") {
+                    audioContext.resume().catch(() => {});
+                }
+                return true;
+            } catch (error) {
+                return false;
+            }
+        }
 
 		function playTone(
 			frequency,
@@ -788,7 +906,7 @@
 			type = "sine",
 			volume = 0.04
 		) {
-			ensureAudioContext();
+			if (!ensureAudioContext()) return;
 
 			const startTime =
 				audioContext.currentTime + delay;
@@ -828,7 +946,7 @@
 		}
 
 		function getTerminalNoiseBuffer() {
-			ensureAudioContext();
+			if (!ensureAudioContext()) return null;
 
 			if (terminalNoiseBuffer) {
 				return terminalNoiseBuffer;
@@ -872,7 +990,7 @@
 			delay = 0,
 			volume = 0.006
 		) {
-			ensureAudioContext();
+			if (!ensureAudioContext()) return;
 
 			const startTime =
 				audioContext.currentTime + delay;
@@ -928,7 +1046,7 @@
 		}
 
 		function playTerminalGlyphSound(step) {
-			ensureAudioContext();
+			if (!ensureAudioContext()) return;
 
 			const pattern = [
 				0,
@@ -1154,12 +1272,9 @@
 				if (isDecoding) return;
 
 				const command =
-					getUnusedCommand();
+					generateCommand();
 
-				if (!command) {
-					updateCounter();
-					return;
-				}
+				if (!command) return;
 
 				isDecoding = true;
 				viewButton.disabled = true;
